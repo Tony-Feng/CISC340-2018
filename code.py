@@ -1,4 +1,4 @@
-import board, digitalio, time, adafruit_sdcard, busio, storage, adafruit_thermistor, adafruit_lis3dh, neopixel, analogio, os
+import board, digitalio, time, adafruit_sdcard, busio, storage, adafruit_thermistor, adafruit_lis3dh, neopixel, analogio
 
 sw = digitalio.DigitalInOut(board.SLIDE_SWITCH)
 sw.direction = digitalio.Direction.INPUT
@@ -20,49 +20,17 @@ sdcard = adafruit_sdcard.SDCard(spi, cs)
 vfs = storage.VfsFat(sdcard)
 storage.mount(vfs, "/sd")
 
-def printDirectoryHelper(path, tabs=0):
-    for file in os.listdir(path):
-        stats = os.stat(path + "/" + file)
-        filesize = stats[6]
-        isdir = stats[0] & 0x4000
- 
-        if filesize < 1000:
-            sizestr = str(filesize) + " by"
-        elif filesize < 1000000:
-            sizestr = "%0.1f KB" % (filesize / 1000)
-        else:
-            sizestr = "%0.1f MB" % (filesize / 1000000)
- 
-        prettyprintname = ""
-        for _ in range(tabs):
-            prettyprintname += "   "
-        prettyprintname += file
-        if isdir:
-            prettyprintname += "/"
-        print('{0:<40} Size: {1:>10}'.format(prettyprintname, sizestr))
-
-        if isdir:
-            printDirectoryHelper(path + "/" + file, tabs + 1)
-
-def printDirectory():
-    print("Files on filesystem:")
-    print("====================")
-    printDirectoryHelper("/sd")
+uart = busio.UART(board.TX, board.RX, baudrate=115200)
 
 def temperature(pause=1):
     c = thermistor.temperature
-    f = c * 9 / 5 + 32
-    # print("Temperature is: %f C and %f F" % (c, f))
     time.sleep(pause)
-    return dict(zip(["c", "f"], [c, f]))
+    return c
 
 def motion(pause=1):
     x, y, z = lis3dh.acceleration
     time.sleep(pause)
     return dict(zip(["x", "y", "z"], [x, y, z]))
-
-def heartBeat(pause=1):
-    return hb.value
 
 def analysis():
     hbs = []
@@ -88,7 +56,6 @@ PULSE, PRE_PULSE = False, False
 pulseCount = 0
 IBI, BPM, SIG = 0, 0, 0
 readData, preReadData = 0, 0
-#发送给上位机的三个量 IBI: 相邻两个心跳的时间，BPM: 心率值， SIG: 脉象图的数值化表示
 timeCount, firstTimeCount, secondTimeCount = 0, 0, 0
 data = []
 
@@ -121,6 +88,13 @@ while True:
                         BPM = 200                 
                     if BPM < 30:
                         BPM = 30
-            print("SIG = %d IBI = %d, BMP = %d\n\n" % (readData, IBI, BPM))
+            s = "SIG = %d, IBI = %d, BMP = %d, " % (readData, IBI, BPM)
+            s += "t = %d, " % temperature(0)
+            stmp = motion(0)
+            s += "x = %f, y = %f, z = %f" % (stmp['x'], stmp['y'], stmp['z'])
+            with open("/sd/records.txt", "a") as f:
+                f.write(s+"\r\n")
+            uart.write(s)
+            print(s)
         timeCount += 1
         time.sleep(0.02)
