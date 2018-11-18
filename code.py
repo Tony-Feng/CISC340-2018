@@ -88,13 +88,17 @@ while True:
                         BPM = 200                 
                     if BPM < 30:
                         BPM = 30
-            s = "SIG = %d, IBI = %d, BMP = %d, " % (readData, IBI, BPM)
+            s = "timestamp = " + str(time.time())
+            s += ", SIG = %d, IBI = %d, BMP = %d, " % (readData, IBI, BPM)
             s += "t = %d, " % temperature(0)
             stmp = motion(0)
             s += "x = %f, y = %f, z = %f" % (stmp['x'], stmp['y'], stmp['z'])
             with open("/sd/records.txt", "a") as f:
                 f.write(s+"\r\n")
-            uart.write(s)
+            result = [i.split(" = ")[1] for i in s.split(", ")]
+            result = ", ".join([result[0]]+result[3:])+")"
+            uart.write(result)
             print(s)
+            # timestamp, heartrate, temp, motion_x, motion_y, motion_z
         timeCount += 1
         time.sleep(0.02)
