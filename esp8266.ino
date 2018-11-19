@@ -63,3 +63,56 @@ void loop()
   data = "";
   delay(5000);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <ESP8266HTTPClient.h>
+#include <ESP8266WiFi.h>
+
+String data;
+
+void setup() {
+  Serial.begin(115200);                 //Serial connection
+  WiFi.begin("cisc340", "Hut!2&FR0");   //WiFi connection
+  while (WiFi.status() != WL_CONNECTED) {  //Wait for the WiFI connection completion
+    delay(500);
+    Serial.println(".");
+  }
+}
+
+void loop() {
+  if(WiFi.status()== WL_CONNECTED){   //Check WiFi connection status
+    while (Serial.available() > 0) {
+      data += char(Serial.read());
+      delay(1);
+    }
+    if(data.length() > 0){
+      HTTPClient http;    //Declare object of class HTTPClient
+      
+      http.begin("http://40.85.246.118:8080/store");      //Specify request destination
+      http.addHeader("Content-Type", "application/json");  //Specify content-type header
+      
+      int httpCode = http.POST(data);   //Send the request
+      String payload = http.getString();                  //Get the response payload
+      Serial.println(httpCode);   //Print HTTP return code
+      Serial.println(payload);    //Print request response payload
+      http.end();  //Close connection
+      data = "";
+    }
+  }else{
+    Serial.println("Error in WiFi connection");
+  }
+  delay(3000);  //Send a request every 30 seconds
+}
