@@ -1,3 +1,5 @@
+# Code for Adafruit Circuit Playground Express board
+
 import board, digitalio, time, adafruit_sdcard, busio, storage, adafruit_thermistor, adafruit_lis3dh, neopixel, analogio
 
 sw = digitalio.DigitalInOut(board.SLIDE_SWITCH)
